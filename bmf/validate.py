@@ -13,6 +13,7 @@ class ValidationError(Exception):
 
 
 def validate_bottle(*param_specs):
+    from bottle import request, HTTPError
     if request.method == 'POST':
         return validate_bottle_json_post(*param_specs)
     elif request.method == 'GET':
