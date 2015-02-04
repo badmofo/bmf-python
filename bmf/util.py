@@ -281,7 +281,8 @@ def find_subdir_in_parent(filepath, subdir, levels=2):
         conf_dir = join(dirname(filepath), 'conf')
         if exists(conf_dir):
             return conf_dir
-    raise Exception("could not find subdir '%'" % subdir)
+        filepath = dirname(filepath)
+    raise Exception("could not find subdir '%s'" % subdir)
 
 
 def recursive_update(original, additional):

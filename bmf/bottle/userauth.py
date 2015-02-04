@@ -12,7 +12,7 @@ import datetime
 from .util import ms
 
 class BaseSessionStorage(object):
-    def __init__(self, self.prefix, redis, get_user_by_user_id):
+    def __init__(self, prefix, redis, get_user_by_user_id):
         self.prefix = prefix
         self.redis = redis
         self.get_user_by_user_id = get_user_by_user_id
