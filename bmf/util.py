@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 def dumps(*arg, **kwargs):
     import datetime
@@ -8,7 +10,6 @@ def dumps(*arg, **kwargs):
         elif isinstance(obj, datetime.datetime):
             return str(obj)
         raise TypeError
-    
     kwargs['indent'] = 1 
     kwargs['default'] = serialize
     return simplejson.dumps(*arg, **kwargs) + '\n'
@@ -23,11 +24,18 @@ def ms():
     return int(time.time() * 1000)
 
 
-def random_text(n=None):
-    import random, os
-    if n is None:
-        n = random.randint(0, 128)
-    return os.urandom(n).encode('base64')[:n]
+def strip_accents(s):
+    import unicodedata
+    if isinstance(s, unicode):
+        return ''.join(c for c in unicodedata.normalize('NFD', s)
+                         if unicodedata.category(c) != 'Mn')
+    else:
+        return s
+
+
+def random_text(length):
+    import os
+    return os.urandom(length).encode('base64')[:length]
 
 
 def uuid():     
@@ -85,6 +93,13 @@ def end_of_day_ms(unixtime_ms=None, timezone='UTC'):
     return parse_datetime_to_ms(str(tomorrow), timezone)
 
 
+def start_of_day_ms(unixtime_ms=None, timezone='UTC'):
+    if not unixtime_ms:
+        unixtime_ms = ms()
+    now = ms_to_datetime(unixtime_ms, timezone)
+    return parse_datetime_to_ms(str(now.date()), timezone)
+    
+
 def get_day_bounds_ms(day, timezone='UTC'):
     from dateutil.relativedelta import relativedelta
     import datetime
@@ -103,8 +118,9 @@ def never_cache():
 
 def generate_pin_number(length=12):
     # see knuth impl in http://en.wikipedia.org/wiki/Linear_congruential_generator
-    import random
-    pin = random.choice('123456789') + ''.join([random.choice('0123456789') for i in range(length - 2)]) 
+    from random import SystemRandom
+    rng = SystemRandom()
+    pin = rng.choice('123456789') + ''.join([rng.choice('0123456789') for i in range(length - 2)]) 
     parity = ((int(pin) * 6364136223846793005L + 1442695040888963407L) % (2**64)) % 10
     return pin + str(parity)
 
@@ -116,14 +132,18 @@ def send_gmail(username, password, sender, recipients, subject, body, files=[]):
     from email.Utils import COMMASPACE, formatdate
     from email import Encoders
     import smtplib
-    assert type(recipients)==list
+    
+    if not recipients:
+        return
+    if not isinstance(recipients, list):
+        recipients = [recipients]
 
     msg = MIMEMultipart()
     msg['From'] = sender
     msg['To'] = COMMASPACE.join(recipients)
     msg['Date'] = formatdate(localtime=True)
     msg['Subject'] = subject
-    msg.attach(MIMEText(body))
+    msg.attach(MIMEText(body.encode('utf-8'), 'plain', 'UTF-8'))
     
     for filename, content, mime_type in files:
         part = MIMEBase('application', mime_type)
@@ -144,37 +164,19 @@ def send_gmail(username, password, sender, recipients, subject, body, files=[]):
 def initialize_2d(cols, rows, value=None):
     return [[value for _ in range(cols)] for _ in range(rows)]
 
-def gdata_spreadsheet_login(gmail_username, gmail_password):
-    import gdata.spreadsheet.service
-    client = gdata.spreadsheet.service.SpreadsheetsService()
-    client.email = gmail_username
-    client.password = gmail_password
-    client.source = ''
-    client.account_type = 'GOOGLE'
-    client.ProgrammaticLogin()
-    return client
 
-def gdata_get_worksheet(gmail_username, gmail_password, spreadsheet_key, max_col, worksheet_id=None):
-    import gdata.spreadsheet.service
-    client = gdata_spreadsheet_login(gmail_username, gmail_password)
-    if worksheet_id is None:
-        worksheet_id = 'od6'
-    cell_query = gdata.spreadsheet.service.CellQuery()
-    cell_query['min-col'] = '1'
-    cell_query['max-col'] = str(max_col)
-    cell_query['min-row'] = '1'
-    feed = client.GetCellsFeed(spreadsheet_key, worksheet_id, query=cell_query)
-    max_row = max([int(entry.cell.row) for entry in feed.entry])
-    if max_col is None:
-        max_col = max([int(entry.cell.col) for entry in feed.entry])
-    sheet = initialize_2d(max_col, max_row)
-    for entry in feed.entry:
-        text = entry.content.text
-        text = text.decode('UTF-8').strip()
-        row = int(entry.cell.row) - 1
-        col  = int(entry.cell.col) - 1
-        sheet[row][col] = text
-    return sheet
+def rows_to_csv(rows, delimiter=None):
+    from cStringIO import StringIO
+    import csv
+    dialect='excel'
+    if delimiter:
+        class AlternateDialect(csv.excel): pass
+        AlternateDialect.delimiter = delimiter
+        dialect = AlternateDialect
+    csv_out = StringIO()
+    csv_writer = csv.writer(csv_out, dialect=dialect)
+    csv_writer.writerows(rows)
+    return csv_out.getvalue()
 
 
 def rows_to_xlsx(data):
@@ -205,34 +207,68 @@ def rows_to_xlsx(data):
                 return int(v)
             return v
         rows = [map(fixup_value, row) for row in sheet['rows']]
-        ws = wb.new_sheet(sheet.get('name', 'Sheet%d' % (j+1)), data=rows)
+        wb.new_sheet(sheet.get('name', 'Sheet%d' % (j+1)), data=rows)
     f = cStringIO.StringIO()
     wb._save(f)
     return f.getvalue()
 
 
-def upload_via_ftp(host, username, password, filename, filedata, directory, tls=False, debuglevel=0):
-    import ftplib
-    import cStringIO
-    if tls:
-        ftp = ftplib.FTP_TLS(host)
-    else:
-        ftp = ftplib.FTP(host)
-    ftp.set_debuglevel(debuglevel)
-    ftp.login(username, password)
-    ftp.cwd(directory)
-    ftp.storbinary('STOR %s' % filename, cStringIO.StringIO(filedata))
+def xlsx_to_rows(filedata, filename='', date_columns=[]):
+    import xlrd
+    import hashlib
+    import tempfile
+    import os.path
+    import uuid
+    import os
+    import datetime
+    
+    date_parse_start = 1
+    if date_columns:
+        date_parse_start = 0
+    
+    temp = os.path.join(tempfile.gettempdir(), 'xlsx_to_rows.tmp.%s.xlsx' % uuid.uuid4())
+    try:
+        f = file(temp, 'w')
+        sha1 = hashlib.sha1(filedata).hexdigest()
+        f.write(filedata)
+        f.close()
+        book = xlrd.open_workbook(temp)
+        sheet = book.sheet_by_index(0)
+        rows = [[c.value for c in sheet.row(i)] for i in xrange(sheet.nrows)]
+        # ugly hack for bullshit excel dates
+        if rows and rows[0]:
+            for i, header in enumerate(rows[0]):
+                if unicode(header).endswith('_date') or header == 'date':
+                    date_columns.append(i)
+            for c in set(date_columns):
+                for r in xrange(date_parse_start, len(rows)):
+                    try:
+                        if isinstance(rows[r][c], (int, float)):
+                            d = xlrd.xldate_as_tuple(rows[r][c], book.datemode)
+                            rows[r][c] = str(datetime.datetime(*d).date())
+                    except:
+                        pass
+        return {'filename': filename, 'data': rows, 'sha1': sha1}
+    finally:
+        try:
+            os.remove(temp)
+        except:
+            pass
 
 
 class FtpResume(object):
-    def __init__(self, hostname, username, password, max_attempts=5):
-        self.hostname = hostname
-        self.username = username
-        self.password = password
+    def __init__(self, url, debuglevel=0):
+        import urlparse
+        parts = urlparse.urlparse(url)
+        self.hostname = parts.hostname
+        self.username = parts.username
+        self.password = parts.password
+        self.tls = parts.scheme.lower() == 'ftps'
+        self.path = parts.path
         self.ftp = None
-        self.max_attempts = max_attempts
+        self.debuglevel = debuglevel
         
-    def connect(self, path=None):
+    def connect(self):
         import ftplib
         if self.ftp:
             try:
@@ -240,24 +276,29 @@ class FtpResume(object):
             except:
                 pass
         self.ftp = None
-        self.ftp = ftplib.FTP(self.hostname)
+        self.ftp = ftplib.FTP_TLS(self.hostname) if self.tls else ftplib.FTP(self.hostname)
+        self.ftp.set_debuglevel(self.debuglevel)
         self.ftp.login(self.username, self.password)
-        if path:
-            self.ftp.cwd(path)
+        if self.path:
+            self.ftp.cwd(self.path)
     
     def nlst(self, pattern):
         return self.ftp.nlst(pattern)
+        
+    def upload(self, filename, filedata):
+        from cStringIO import StringIO
+        self.ftp.storbinary('STOR %s' % filename, StringIO(filedata))
     
     def download(self, filename):
-        import cStringIO
-        downloaded = cStringIO.StringIO()
-        ftp.retrbinary('RETR %s' % filename, downloaded.write)
+        from cStringIO import StringIO
+        downloaded = StringIO()
+        self.ftp.retrbinary('RETR %s' % filename, downloaded.write)
         return downloaded.getvalue()
         
-    def download_with_retry(self, filename):
-        import cStringIO
+    def download_with_retry(self, filename, max_attempts=5):
+        from cStringIO import StringIO
         self.connect()
-        downloaded = cStringIO.StringIO()
+        downloaded = StringIO()
         file_size = self.ftp.size(filename)
         while file_size != len(downloaded.getvalue()):
             try:
@@ -265,13 +306,23 @@ class FtpResume(object):
                     self.ftp.retrbinary('RETR %s' % filename, downloaded.write, len(downloaded.getvalue()))
                 else:
                     self.ftp.retrbinary('RETR %s' % filename, downloaded.write)
-            except Exception as myerror:
-                if self.max_attempts != 0:
-                    self.connect()
-                    self.max_attempts -= 1
-                else:
+            except Exception:
+                if max_attempts == 0:
                     break
+                else:
+                    self.connect()
+                    max_attempts -= 1
         return downloaded.getvalue()
+
+def download_via_ftp(url, filename):
+    ftp = FtpResume(url)
+    ftp.connect()
+    return ftp.download(filename)
+
+def upload_via_ftp(url, filename, filedata, debuglevel=0):
+    ftp = FtpResume(url, debuglevel=debuglevel)
+    ftp.connect()
+    ftp.upload(filename, filedata)
 
 
 def find_subdir_in_parent(filepath, subdir, levels=2):

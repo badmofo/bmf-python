@@ -1,1 +1,1 @@
-A set of useful python utilities.
+A set of useful python utilities.  Python 2.7 only.

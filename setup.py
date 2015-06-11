@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
 from distutils.core import setup
+import sys
+
+if sys.version_info[:2] != (2, 7):
+    print('Only Python 2.7 is supported')
+    sys.exit(1)
 
 setup(name='bmf-python',
       version='0.1',
