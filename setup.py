@@ -8,7 +8,7 @@ if sys.version_info[:2] != (2, 7):
     sys.exit(1)
 
 setup(name='bmf-python',
-      version='0.1',
+      version='0.2',
       description="Badmofo's Python Utilities",
       author='Lucas Ryan',
       author_email='badmofo@gmail.com',
