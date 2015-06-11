@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 def dumps(*arg, **kwargs):
     import datetime
     import simplejson
