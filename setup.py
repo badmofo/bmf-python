@@ -13,5 +13,5 @@ setup(name='bmf-python',
       author='Lucas Ryan',
       author_email='badmofo@gmail.com',
       url='http://github.com/badmofo/bmf-python',
-      packages=['bmf', 'bmf.bottle']
+      packages=['bmf', 'bmf.bottleplugin']
       )
