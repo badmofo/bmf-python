@@ -4,6 +4,7 @@
 import re
 import datetime
 from decimal import Decimal 
+from numbers import Number, Integral
 from .util import AttrDict
 
 
@@ -16,14 +17,11 @@ class ValidationError(Exception):
         """
         super(ValidationError, self).__init__(message)
         self.parameter = parameter
-        
-    def __unicode__(self):
+    
+    def __str__(self):
         if not self.parameter:
             return self.message
         return "Parameter: '%s' Error: %s" % (self.parameter, self.message)
-    
-    def __str__(self):
-        return self.__unicode__().encode('utf-8')
 
 def validate_bottle(*param_specs):
     from bottle import request
@@ -39,7 +37,7 @@ def validate_bottle_json_body():
             raise HTTPError(400, "Invalid request.  Content-Type must be set to \'application/json\'.")
         if request.json is None or not isinstance(request.json, dict):
             raise HTTPError(400, "Invalid request.  Expected JSON-formatted input parameters in request body.")
-    except ValueError, e:
+    except ValueError as e:
         raise  HTTPError(400, "Invalid request.  Error parsing JSON body: %s" % e)
 
 def validate_bottle_json_post(*param_specs):
@@ -48,7 +46,7 @@ def validate_bottle_json_post(*param_specs):
     validate_bottle_json_body()
     try:
         return validate_dict(request.json, param_specs)
-    except ValidationError, e:
+    except ValidationError as e:
         raise HTTPError(400, "Invalid request.  %s" % e)
 
 def validate_bottle_get(*param_specs):
@@ -56,7 +54,7 @@ def validate_bottle_get(*param_specs):
     if not param_specs: return
     try:
         return validate_dict(request.query, param_specs)
-    except ValidationError, e:
+    except ValidationError as e:
         raise HTTPError(400, "Invalid request.  %s" % e)
 
 def validate_dict(params, param_specs):
@@ -265,9 +263,9 @@ class ParamSpec(object):
     def check(self, value):
         try:
             types = {
-                's': ((str, unicode), 'string'),
-                'f': ((float, long, int, Decimal), 'float'),
-                'i': ((int, long), 'integer'),
+                's': ((str,), 'string'),
+                'f': ((Number,), 'float'),
+                'i': ((Integral,), 'integer'),
                 'a': ((list, tuple), 'array'),
                 'o': ((dict,), 'object'),
                 'b': ((bool), 'boolean'),
@@ -316,12 +314,12 @@ if __name__ == "__main__":
     ]
     
     for i, (spec, value_in, value_expected, error) in enumerate(tests):
-        print 'test', i, ':', value_in, value_expected
+        print('test', i, ':', value_in, value_expected)
         try:
             value_out = validate_dict({'a': value_in}, [spec])['a']
             assert value_out == value_expected, (value_out, value_expected)
             assert error is None
-            print value_out
+            print(value_out)
         except ValidationError as e:
             assert error, e
-            print e
+            print(e)

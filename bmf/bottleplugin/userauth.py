@@ -6,10 +6,8 @@ WARNING: Don't use this yet.  Not done/tested yet + doesn't implement XSRF mecha
 
 import inspect
 import bottle
-import sys
 import os
 import datetime
-from .util import ms
 
 class BaseSessionStorage(object):
     def __init__(self, prefix, redis, get_user_by_user_id):
@@ -128,7 +126,7 @@ class UserAuthPlugin(object):
                 kwargs['user'] = user_or_error
                 return callback(*args, **kwargs)
 
-            response = bottle.HTTPError(401, unicode(user_or_error))
+            response = bottle.HTTPError(401, str(user_or_error))
             # don't request basic auth from ajax requests
             if not bottle.request.is_xhr:
                 response.headers['WWW-Authenticate'] = 'Basic realm="%s"' % self.realm_name

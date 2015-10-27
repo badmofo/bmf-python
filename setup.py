@@ -3,12 +3,12 @@
 from distutils.core import setup
 import sys
 
-if sys.version_info[:2] != (2, 7):
-    print('Only Python 2.7 is supported')
+if sys.version_info[:2] != (3, 5):
+    print('Only Python 3.5 is supported')
     sys.exit(1)
 
 setup(name='bmf-python',
-      version='0.2',
+      version='0.3',
       description="Badmofo's Python Utilities",
       author='Lucas Ryan',
       author_email='badmofo@gmail.com',

@@ -28,11 +28,9 @@ def ms():
 
 def strip_accents(s):
     import unicodedata
-    if isinstance(s, unicode):
-        return ''.join(c for c in unicodedata.normalize('NFD', s)
-                         if unicodedata.category(c) != 'Mn')
-    else:
-        return s
+    assert isinstance(s, str)
+    return ''.join(c for c in unicodedata.normalize('NFD', s)
+                     if unicodedata.category(c) != 'Mn')
 
 
 def random_text(length):
@@ -47,7 +45,7 @@ def uuid():
 
 def is_uuid(s):
     import re
-    return isinstance(s, (unicode, str)) and bool(re.match(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$', s, re.I))
+    return isinstance(s, str) and bool(re.match(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$', s, re.I))
 
 
 def datetime_to_ms(dt, timezone=None):
@@ -123,7 +121,7 @@ def generate_pin_number(length=12):
     from random import SystemRandom
     rng = SystemRandom()
     pin = rng.choice('123456789') + ''.join([rng.choice('0123456789') for i in range(length - 2)]) 
-    parity = ((int(pin) * 6364136223846793005L + 1442695040888963407L) % (2**64)) % 10
+    parity = ((int(pin) * 6364136223846793005 + 1442695040888963407) % (2**64)) % 10
     return pin + str(parity)
 
 
@@ -230,20 +228,20 @@ def xlsx_to_rows(filedata, filename='', date_columns=[]):
     
     temp = os.path.join(tempfile.gettempdir(), 'xlsx_to_rows.tmp.%s.xlsx' % uuid.uuid4())
     try:
-        f = file(temp, 'w')
+        f = open(temp, 'w')
         sha1 = hashlib.sha1(filedata).hexdigest()
         f.write(filedata)
         f.close()
         book = xlrd.open_workbook(temp)
         sheet = book.sheet_by_index(0)
-        rows = [[c.value for c in sheet.row(i)] for i in xrange(sheet.nrows)]
+        rows = [[c.value for c in sheet.row(i)] for i in range(sheet.nrows)]
         # ugly hack for bullshit excel dates
         if rows and rows[0]:
             for i, header in enumerate(rows[0]):
-                if unicode(header).endswith('_date') or header == 'date':
+                if str(header).endswith('_date') or header == 'date':
                     date_columns.append(i)
             for c in set(date_columns):
-                for r in xrange(date_parse_start, len(rows)):
+                for r in range(date_parse_start, len(rows)):
                     try:
                         if isinstance(rows[r][c], (int, float)):
                             d = xlrd.xldate_as_tuple(rows[r][c], book.datemode)
@@ -330,7 +328,7 @@ def upload_via_ftp(url, filename, filedata, debuglevel=0):
 def find_subdir_in_parent(filepath, subdir, levels=2):
     from os.path import exists, join, dirname, abspath
     filepath = dirname(abspath(filepath))
-    for i in xrange(levels):
+    for i in range(levels):
         conf_dir = join(dirname(filepath), 'conf')
         if exists(conf_dir):
             return conf_dir
@@ -352,9 +350,9 @@ def load_config(conf_dir):
     import yaml
     import bunch
     from os.path import exists, join
-    config = yaml.load(file(join(conf_dir, 'defaults.yaml')))
+    config = yaml.load(open(join(conf_dir, 'defaults.yaml')))
     if exists(join(conf_dir, 'local.yaml')):
-        recursive_update(config, yaml.load(file(join(conf_dir, 'local.yaml'))))
+        recursive_update(config, yaml.load(open(join(conf_dir, 'local.yaml'))))
     return bunch.bunchify(config)
 
 

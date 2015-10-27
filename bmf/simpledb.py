@@ -8,12 +8,11 @@ happen if you are running a web application under gunicorn and soft restart
 it.
 '''
 
-import itertools
 import time
-import traceback
 import mysql.connector
 from mysql.connector import IntegrityError
 
+__all__ = ['Connection', 'IntegrityError']
 
 class Connection(object):
     def __init__(self, host, database, user, password):
@@ -76,7 +75,7 @@ class Connection(object):
         try:
             self._execute(cursor, query, parameters, kwparameters)
             column_names = [d[0] for d in cursor.description]
-            return [Row(itertools.izip(column_names, row)) for row in cursor]
+            return [Row(zip(column_names, row)) for row in cursor]
         finally:
             cursor.close()
             

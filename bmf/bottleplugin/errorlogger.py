@@ -14,7 +14,7 @@ class ErrorLoggerPlugin(object):
         def wrapper(*args, **kwargs):
             try:
                 return callback(*args, **kwargs)
-            except Exception, e:
+            except Exception as e:
                 # immediately re-raise if this was not caused by a real exception
                 if isinstance(e, bottle.HTTPError) and not e.exception:
                     raise
