@@ -107,6 +107,22 @@ class Connection(object):
             return cursor.executemany(query, *parameters, **kwparameters)
         finally:
             cursor.close()
+    
+    def insert(self, table_name, **kwargs):
+        if not kwargs: return
+        fields, values = zip(*kwargs.items())
+        field_set = '(' + ','.join(['`%s`' % f for f in fields]) + ')'
+        value_set = '(' + ','.join(['%s'] * len(fields)) + ')'
+        sql = 'INSERT INTO `%s` %s VALUES %s' % (table_name, field_set, value_set)
+        return self.execute_lastrowid(sql, *values)
+    
+    def replace(self, table_name, **kwargs):
+        if not kwargs: return
+        fields, values = zip(*kwargs.items())
+        field_set = '(' + ','.join(['`%s`' % f for f in fields]) + ')'
+        value_set = '(' + ','.join(['%s'] * len(fields)) + ')'
+        sql = 'REPLACE INTO `%s` %s VALUES %s' % (table_name, field_set, value_set)
+        return self.execute_lastrowid(sql, *values)
 
 
 class Row(dict):
