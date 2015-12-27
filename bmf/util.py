@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 def dumps(*arg, **kwargs):
     import datetime
@@ -18,7 +18,7 @@ def dumps(*arg, **kwargs):
 
 
 def project(d, fields):
-    return dict([(k,v) for k,v in d.iteritems() if k in fields])
+    return dict([(k,v) for k,v in d.items() if k in fields])
 
 
 def ms():
@@ -166,7 +166,7 @@ def initialize_2d(cols, rows, value=None):
 
 
 def rows_to_csv(rows, delimiter=None):
-    from cStringIO import StringIO
+    from io import StringIO
     import csv
     dialect='excel'
     if delimiter:
@@ -185,7 +185,7 @@ def rows_to_xlsx(data):
     and "name" that will be turned into individual worksheets.
     """
     from pyexcelerate import Workbook
-    import cStringIO
+    import io
     import datetime
     from decimal import Decimal
     if not data:
@@ -206,9 +206,9 @@ def rows_to_xlsx(data):
             if isinstance(v, bool):
                 return int(v)
             return v
-        rows = [map(fixup_value, row) for row in sheet['rows']]
+        rows = [list(map(fixup_value, row)) for row in sheet['rows']]
         wb.new_sheet(sheet.get('name', 'Sheet%d' % (j+1)), data=rows)
-    f = cStringIO.StringIO()
+    f = io.StringIO()
     wb._save(f)
     return f.getvalue()
 
@@ -258,8 +258,8 @@ def xlsx_to_rows(filedata, filename='', date_columns=[]):
 
 class FtpResume(object):
     def __init__(self, url, debuglevel=0):
-        import urlparse
-        parts = urlparse.urlparse(url)
+        import urllib.parse
+        parts = urllib.parse.urlparse(url)
         self.hostname = parts.hostname
         self.username = parts.username
         self.password = parts.password
@@ -286,17 +286,17 @@ class FtpResume(object):
         return self.ftp.nlst(pattern)
         
     def upload(self, filename, filedata):
-        from cStringIO import StringIO
+        from io import StringIO
         self.ftp.storbinary('STOR %s' % filename, StringIO(filedata))
     
     def download(self, filename):
-        from cStringIO import StringIO
+        from io import StringIO
         downloaded = StringIO()
         self.ftp.retrbinary('RETR %s' % filename, downloaded.write)
         return downloaded.getvalue()
         
     def download_with_retry(self, filename, max_attempts=5):
-        from cStringIO import StringIO
+        from io import StringIO
         self.connect()
         downloaded = StringIO()
         file_size = self.ftp.size(filename)
@@ -339,7 +339,7 @@ def find_subdir_in_parent(filepath, subdir, levels=2):
 def recursive_update(original, additional):
     if not additional:
         return
-    for key,value in additional.iteritems():
+    for key,value in additional.items():
         if key in original and isinstance(value, dict):
             recursive_update(original[key], value)
         else:
@@ -374,11 +374,11 @@ def mysql_utf8(s):
     ''' Makes text safe for MySQL by removing 4-byte unicode chars '''
     import re
     try:
-        highpoints = re.compile(u'[\U00010000-\U0010ffff]')
+        highpoints = re.compile('[\U00010000-\U0010ffff]')
     except re.error:
         # UCS-2 build
-        highpoints = re.compile(u'[\uD800-\uDBFF][\uDC00-\uDFFF]')
-    return highpoints.sub(u'', s)
+        highpoints = re.compile('[\uD800-\uDBFF][\uDC00-\uDFFF]')
+    return highpoints.sub('', s)
 
 
 def aes_encrypt(plaintext, password):
@@ -442,7 +442,7 @@ class AttrDict(dict):
         dict.__init__(self, *args, **kwargs)
 
     def __getstate__(self):
-        return self.__dict__.items()
+        return list(self.__dict__.items())
 
     def __setstate__(self, items):
         for key, val in items:

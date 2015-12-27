@@ -75,7 +75,7 @@ class Connection(object):
         try:
             self._execute(cursor, query, parameters, kwparameters)
             column_names = [d[0] for d in cursor.description]
-            return [Row(zip(column_names, row)) for row in cursor]
+            return [Row(list(zip(column_names, row))) for row in cursor]
         finally:
             cursor.close()
             
@@ -110,7 +110,7 @@ class Connection(object):
     
     def insert(self, table_name, **kwargs):
         if not kwargs: return
-        fields, values = zip(*kwargs.items())
+        fields, values = list(zip(*list(kwargs.items())))
         field_set = '(' + ','.join(['`%s`' % f for f in fields]) + ')'
         value_set = '(' + ','.join(['%s'] * len(fields)) + ')'
         sql = 'INSERT INTO `%s` %s VALUES %s' % (table_name, field_set, value_set)
@@ -118,7 +118,7 @@ class Connection(object):
     
     def replace(self, table_name, **kwargs):
         if not kwargs: return
-        fields, values = zip(*kwargs.items())
+        fields, values = list(zip(*list(kwargs.items())))
         field_set = '(' + ','.join(['`%s`' % f for f in fields]) + ')'
         value_set = '(' + ','.join(['%s'] * len(fields)) + ')'
         sql = 'REPLACE INTO `%s` %s VALUES %s' % (table_name, field_set, value_set)

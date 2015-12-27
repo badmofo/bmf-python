@@ -236,7 +236,7 @@ class Validators(object):
             if value is None: return None
             v = strip_accents(value.lower())
             if v not in args:
-                raise ValidationError("'%s' not in %s" % (value, dump_set(args.values())))
+                raise ValidationError("'%s' not in %s" % (value, dump_set(list(args.values()))))
             return args[v]
         return inner_validate
 
@@ -299,8 +299,8 @@ if __name__ == "__main__":
         [P('a', 's', [V.strip, V.length(3)]), ' foobar ', None, True],
         [P('a', 's', V.emails), 'a@b.com a@i-a.com', 'a@b.com\na@i-a.com', None],
         [P('a', 's', V.emails), 'a@com a@i-a.com', None, True],
-        [P('a', 's', V.one_of(u'abcdé', 'abc')), u'abcdé', u'abcdé', None],
-        [P('a', 's', V.one_of(u'abcdé', 'abc')), u'a', None, True],
+        [P('a', 's', V.one_of('abcdé', 'abc')), 'abcdé', 'abcdé', None],
+        [P('a', 's', V.one_of('abcdé', 'abc')), 'a', None, True],
         [P('a', 's', V.regex('\d+')), '1234', '1234', None],
         [P('a', 's', V.regex('\d+')), 'abc', None, True],
         [P('a', 's', V.hex), 'deadbeef001234', 'deadbeef001234', None],
@@ -314,7 +314,7 @@ if __name__ == "__main__":
     ]
     
     for i, (spec, value_in, value_expected, error) in enumerate(tests):
-        print('test', i, ':', value_in, value_expected)
+        print(('test', i, ':', value_in, value_expected))
         try:
             value_out = validate_dict({'a': value_in}, [spec])['a']
             assert value_out == value_expected, (value_out, value_expected)
