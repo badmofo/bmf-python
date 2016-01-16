@@ -348,12 +348,12 @@ def recursive_update(original, additional):
 
 def load_config(conf_dir):
     import yaml
-    import bunch
+    import munch
     from os.path import exists, join
     config = yaml.load(open(join(conf_dir, 'defaults.yaml')))
     if exists(join(conf_dir, 'local.yaml')):
         recursive_update(config, yaml.load(open(join(conf_dir, 'local.yaml'))))
-    return bunch.bunchify(config)
+    return munch.munchify(config)
 
 
 def signalproof_sleep(duration):
