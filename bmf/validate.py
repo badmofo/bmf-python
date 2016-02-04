@@ -15,7 +15,8 @@ class ValidationError(Exception):
         """ - parameter: the name of the invalid parameter
             - message: the problem 
         """
-        super(ValidationError, self).__init__(message)
+        super().__init__(message)
+        self.message = message
         self.parameter = parameter
     
     def __str__(self):

@@ -15,3 +15,7 @@ setup(name='bmf-python',
       url='http://github.com/badmofo/bmf-python',
       packages=['bmf', 'bmf.bottleplugin']
       )
+
+# pycryptodome
+# bottle
+# simplejson

@@ -346,13 +346,19 @@ def recursive_update(original, additional):
             original[key] = value
 
 
-def load_config(conf_dir):
+def load_yaml(filename):
     import yaml
+    with open(filename) as f:
+        return yaml.load(f)
+
+def load_config(conf_dir):
     import munch
     from os.path import exists, join
-    config = yaml.load(open(join(conf_dir, 'defaults.yaml')))
-    if exists(join(conf_dir, 'local.yaml')):
-        recursive_update(config, yaml.load(open(join(conf_dir, 'local.yaml'))))
+    defaults_file = join(conf_dir, 'defaults.yaml')
+    local_file = join(conf_dir, 'local.yaml')
+    config = load_yaml(defaults_file)
+    if exists(local_file):
+        recursive_update(config, load_yaml(local_file))
     return munch.munchify(config)
 
 
