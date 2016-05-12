@@ -224,8 +224,8 @@ class UserAuthPlugin(object):
             self,
             xsrf_secret,
             user_store,
-            security_scheme,
             session_storage,
+            security_scheme,
             session_lifetime_sec=60*15, # 15 minutes
             secure_cookie=False,
             cookie_name='SESSION',

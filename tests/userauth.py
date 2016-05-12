@@ -152,7 +152,7 @@ def test_plugin(redis, db):
     user_id = user_store.get_user_by_username('test1').id
     security_scheme.update_password(user_id, '12345')
     
-    plugin = UserAuthPlugin('secret', user_store, security_scheme, session_storage)
+    plugin = UserAuthPlugin('secret', user_store, session_storage, security_scheme)
     
     app = bottle.Bottle()
     app.install(plugin)
