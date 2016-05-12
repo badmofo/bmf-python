@@ -15,7 +15,7 @@ from mysql.connector import IntegrityError
 __all__ = ['Connection', 'IntegrityError']
 
 class Connection(object):
-    def __init__(self, host, database, user, password):
+    def __init__(self, host, database, user='root', password=''):
         self.c = None
         self.args = {
             'host': host,
@@ -123,6 +123,15 @@ class Connection(object):
         value_set = '(' + ','.join(['%s'] * len(fields)) + ')'
         sql = 'REPLACE INTO `%s` %s VALUES %s' % (table_name, field_set, value_set)
         return self.execute_lastrowid(sql, *values)
+        
+    def update(self, table_name, key_name, key_value, **kwargs):
+        if not kwargs: return
+        fields, values = zip(*kwargs.items())
+        sql = 'UPDATE `%s` SET ' % table_name
+        sql += ','.join(' %s=%%s ' % f for f in fields)
+        sql += ' WHERE %s=%%s LIMIT 1' % key_name # use limit 1 for safety for now
+        args = list(values) + [key_value]
+        return self.execute(sql, *args)
 
 
 class Row(dict):
