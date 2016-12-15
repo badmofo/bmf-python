@@ -108,21 +108,22 @@ class Connection(object):
         finally:
             cursor.close()
     
-    def insert(self, table_name, **kwargs):
+    def create(self, statement, table_name, **kwargs):
         if not kwargs: return
         fields, values = list(zip(*list(kwargs.items())))
         field_set = '(' + ','.join(['`%s`' % f for f in fields]) + ')'
         value_set = '(' + ','.join(['%s'] * len(fields)) + ')'
-        sql = 'INSERT INTO `%s` %s VALUES %s' % (table_name, field_set, value_set)
+        sql = '%s INTO `%s` %s VALUES %s' % (statement, table_name, field_set, value_set)
         return self.execute_lastrowid(sql, *values)
     
+    def insert(self, table_name, **kwargs):
+        return self.create('INSERT', table_name, **kwargs)
+    
+    def insert_ignore(self, table_name, **kwargs):
+        return self.create('INSERT IGNORE', table_name, **kwargs)
+    
     def replace(self, table_name, **kwargs):
-        if not kwargs: return
-        fields, values = list(zip(*list(kwargs.items())))
-        field_set = '(' + ','.join(['`%s`' % f for f in fields]) + ')'
-        value_set = '(' + ','.join(['%s'] * len(fields)) + ')'
-        sql = 'REPLACE INTO `%s` %s VALUES %s' % (table_name, field_set, value_set)
-        return self.execute_lastrowid(sql, *values)
+        return self.create('REPLACE', table_name, **kwargs)
         
     def update(self, table_name, key_name, key_value, **kwargs):
         if not kwargs: return
