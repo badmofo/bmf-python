@@ -208,7 +208,7 @@ def rows_to_xlsx(data):
             return v
         rows = [list(map(fixup_value, row)) for row in sheet['rows']]
         wb.new_sheet(sheet.get('name', 'Sheet%d' % (j+1)), data=rows)
-    f = io.StringIO()
+    f = io.BytesIO()
     wb._save(f)
     return f.getvalue()
 
