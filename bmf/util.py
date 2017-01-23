@@ -475,3 +475,92 @@ class AttrDict(dict):
     def _asdict(self):
         """Method used by simplejson."""
         return self
+
+
+import collections
+class JsonShelf(collections.MutableMapping):
+    def __init__(self, filename, data={}):
+        import os
+        self.filename = filename
+        self.data = {}
+        self.data.update(data)
+        if os.path.exists(self.filename):
+            self.load()
+    
+    def save(self):
+        import json
+        with open(self.filename, 'w') as f:
+            json.dump(self.data, f)
+    
+    def load(self):
+        import json
+        with open(self.filename, 'r') as f:
+            self.data = json.load(f)
+    
+    def __getitem__(self, key):
+        return self.data[key]
+    
+    def __setitem__(self, key, value):
+        self.data[key] = value
+        self.save()
+    
+    def __delitem__(self, key):
+        del self.data[key]
+        self.save()
+    
+    def __iter__(self):
+        return iter(self.data)
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __str__(self):
+        return str(self.data)
+
+
+def get_files_recursive(directory):
+    import itertools
+    import os
+    return sorted(list(itertools.chain(*[[os.path.join(x, f) for f in z] for x,y,z in os.walk(directory)])))
+
+
+def delete_path(fullpath):
+    import os
+    import shutil
+    if os.path.exists(fullpath):
+        if os.path.isdir(fullpath):
+            shutil.rmtree(fullpath)
+        else:
+            os.unlink(fullpath)
+
+
+def create_thumbnail(input_filepath, output_filepath=None, width=None, height=None):
+    from PIL import Image
+    from io import BytesIO
+    height = height or width or 180
+    width = width or height or 180
+    with open(input_filepath, 'rb') as f:
+        img = Image.open(BytesIO(f.read()))
+        # original_size = img.size
+        img.thumbnail((width, height), Image.ANTIALIAS)
+        out = BytesIO()
+        img.save(out, format='JPEG', quality=90)
+        img.close()
+        content = out.getvalue()
+    if output_filepath:
+        with open(output_filepath, 'wb') as f:
+            f.write(content)
+    return content
+
+
+import logging
+def setup_logging(level=logging.INFO):
+    import sys
+    import os
+    main_script = sys.argv[0] or 'console.log'
+    logfile = os.path.splitext(main_script)[0] + '.log'
+    logging.basicConfig(level=level,
+                        format='%(asctime)s %(levelname)s %(message)s',
+                        filename=logfile,
+                        filemode='a')
+    return logging.getLogger()
