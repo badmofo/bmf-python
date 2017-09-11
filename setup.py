@@ -3,8 +3,8 @@
 from distutils.core import setup
 import sys
 
-if sys.version_info[:2] != (3, 5):
-    print('Only Python 3.5 is supported')
+if sys.version_info[:2] not in [(3, 5), (3, 6), (3, 7)]:
+    print('Only Python 3.(5|6|7) is supported')
     sys.exit(1)
 
 setup(name='bmf-python',
