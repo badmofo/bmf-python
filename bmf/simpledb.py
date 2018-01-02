@@ -15,10 +15,11 @@ from mysql.connector import IntegrityError
 __all__ = ['Connection', 'IntegrityError']
 
 class Connection(object):
-    def __init__(self, host, database, user='root', password=''):
+    def __init__(self, host, database, user='root', password='', port=3306):
         self.c = None
         self.args = {
             'host': host,
+            'port': port,
             'database': database,
             'user': user,
             'password': password,
