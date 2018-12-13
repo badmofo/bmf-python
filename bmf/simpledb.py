@@ -15,9 +15,9 @@ from mysql.connector import IntegrityError
 __all__ = ['Connection', 'IntegrityError']
 
 class Connection(object):
-    def __init__(self, host, database, user='root', password='', port=3306):
+    def __init__(self, host, database, user='root', password='', port=3306, config={}):
         self.c = None
-        self.args = {
+        self.config = {
             'host': host,
             'port': port,
             'database': database,
@@ -28,6 +28,7 @@ class Connection(object):
             'sql_mode': 'TRADITIONAL',
             'time_zone': '+0:00',
         }
+        self.config.update(config)
         self.max_idle_time= 1 * 60 * 60
         self.last_use_time = 0
         self.ensure_connected()
@@ -46,7 +47,7 @@ class Connection(object):
     def reconnect(self):
         """Closes the existing database connection and re-opens it."""
         self.close()
-        self.c = mysql.connector.connect(**self.args)
+        self.c = mysql.connector.connect(**self.config)
 
     def ensure_connected(self):
         # Mysql by default closes client connections that are idle for
@@ -55,12 +56,15 @@ class Connection(object):
         # case by preemptively closing and reopening the connection
         # if it has been idle for too long (1 hour by default).
         idle_time = time.time() - self.last_use_time
-        if self.c is None or idle_time > self.max_idle_time:
+        if self.c is None or idle_time > self.max_idle_time or not self.c.is_connected():
             self.reconnect()
         self.last_use_time = time.time()
 
-    def cursor(self):
+    def cursor(self, buffered=True):
         self.ensure_connected()
+        if not buffered:
+            from mysql.connector.cursor import MySQLCursor
+            return MySQLCursor(self.c)
         return self.c.cursor()
 
     def _execute(self, cursor, query, parameters, kwparameters):
@@ -69,6 +73,17 @@ class Connection(object):
         except mysql.connector.OperationalError:
             self.close()
             raise
+
+    def query_unbuffered(self, query, *parameters, **kwparameters):
+        """Returns a row list for the given query and parameters."""
+        cursor = self.cursor(buffered=False)
+        try:
+            self._execute(cursor, query, parameters, kwparameters)
+            column_names = [d[0] for d in cursor.description]
+            for row in cursor:
+                yield Row(zip(column_names, row))
+        finally:
+            cursor.close()
 
     def query(self, query, *parameters, **kwparameters):
         """Returns a row list for the given query and parameters."""
