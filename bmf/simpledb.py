@@ -100,6 +100,15 @@ class Connection(object):
             cursor.close()
     
     execute = execute_lastrowid
+    
+    def execute_rowcount(self, query, *parameters, **kwparameters):
+        """Executes the given query, returning the lastrowid from the query."""
+        cursor = self.cursor()
+        try:
+            self._execute(cursor, query, parameters, kwparameters)
+            return cursor.rowcount
+        finally:
+            cursor.close()
 
     def execute_many(self, query, *parameters, **kwparameters):
         """Executes the given query on multiple rows of data."""

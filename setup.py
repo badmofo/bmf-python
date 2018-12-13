@@ -8,7 +8,7 @@ if sys.version_info[:2] not in [(3, 5), (3, 6), (3, 7)]:
     sys.exit(1)
 
 setup(name='bmf-python',
-      version='0.3',
+      version='0.4',
       description="Badmofo's Python Utilities",
       author='Lucas Ryan',
       author_email='badmofo@gmail.com',
