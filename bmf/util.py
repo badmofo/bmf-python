@@ -482,8 +482,8 @@ class AttrDict(dict):
         return self
 
 
-import collections
-class JsonShelf(collections.MutableMapping):
+import collections.abc
+class JsonShelf(collections.abc.MutableMapping):
     def __init__(self, filename, data={}):
         import os
         self.filename = filename
