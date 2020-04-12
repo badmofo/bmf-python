@@ -394,9 +394,9 @@ def mysql_utf8(s):
 
 def aes_encrypt(plaintext, password):
     # aes-128 cbc pkcs5 padding
-    from Crypto.Cipher import AES
-    from Crypto import Random
-    from Crypto.Hash import SHA256
+    from Cryptodome.Cipher import AES
+    from Cryptodome import Random
+    from Cryptodome.Hash import SHA256
     padding = AES.block_size - len(plaintext) % AES.block_size
     plaintext_padded = plaintext + chr(padding) * padding
     iv = Random.new().read(AES.block_size)
@@ -406,8 +406,8 @@ def aes_encrypt(plaintext, password):
 
 
 def aes_decrypt(iv_ciphertext, password):
-    from Crypto.Cipher import AES
-    from Crypto.Hash import SHA256
+    from Cryptodome.Cipher import AES
+    from Cryptodome.Hash import SHA256
     key = SHA256.new(password).digest()[:16]
     iv, ciphertext = iv_ciphertext[:16], iv_ciphertext[16:]
     cipher = AES.new(key, AES.MODE_CBC, iv)
@@ -420,7 +420,7 @@ def aes_decrypt(iv_ciphertext, password):
 class TicketMinter:
     def __init__(self, secret, grace_time_sec=60*15, realm='DEFAULT'):
         import hashlib
-        from Crypto.Cipher import AES
+        from Cryptodome.Cipher import AES
         self.cipher = AES.new(hashlib.sha256(secret).digest())
         self.grace_time_sec = grace_time_sec
         self.realm = realm

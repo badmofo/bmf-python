@@ -16,6 +16,6 @@ setup(name='bmf-python',
       packages=['bmf', 'bmf.bottleplugin']
       )
 
-# pycryptodome
+# pycryptodomex
 # bottle
 # simplejson
