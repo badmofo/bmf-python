@@ -125,12 +125,12 @@ def generate_pin_number(length=12):
     return pin + str(parity)
 
 
-def send_gmail(username, password, sender, recipients, subject, body, files=[]):
+def send_gmail(username, password, recipients, subject, text_body, html_body=None, files=[], reply_to=None):
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
     from email.mime.base import MIMEBase
-    from email.Utils import COMMASPACE, formatdate
-    from email import Encoders
+    from email.utils import COMMASPACE, formatdate
+    from email import encoders
     import smtplib
     
     if not recipients:
@@ -139,16 +139,21 @@ def send_gmail(username, password, sender, recipients, subject, body, files=[]):
         recipients = [recipients]
 
     msg = MIMEMultipart()
-    msg['From'] = sender
+    msg['From'] = username
     msg['To'] = COMMASPACE.join(recipients)
     msg['Date'] = formatdate(localtime=True)
     msg['Subject'] = subject
-    msg.attach(MIMEText(body.encode('utf-8'), 'plain', 'UTF-8'))
+    if reply_to:
+        msg['Reply-To'] = reply_to
+    msg.attach(MIMEText(text_body.encode('utf-8'), 'plain', 'UTF-8'))
+    
+    if html_body:
+        msg.attach(MIMEText(html_body.encode('utf-8'), 'html', 'UTF-8'))
     
     for filename, content, mime_type in files:
         part = MIMEBase('application', mime_type)
         part.set_payload(content)
-        Encoders.encode_base64(part)
+        encoders.encode_base64(part)
         part.add_header('Content-Disposition', 'attachment; filename="%s"' % filename)
         msg.attach(part)
 
@@ -157,7 +162,7 @@ def send_gmail(username, password, sender, recipients, subject, body, files=[]):
     smtp.starttls()
     smtp.ehlo()
     smtp.login(username, password)
-    smtp.sendmail(sender, recipients, msg.as_string())
+    smtp.sendmail(username, recipients, msg.as_string())
     smtp.close()
 
 
