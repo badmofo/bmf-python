@@ -392,29 +392,46 @@ def mysql_utf8(s):
     return highpoints.sub('', s)
 
 
+def as_bytes(data):
+    if isinstance(data, str):
+        return data.encode('utf-8')
+    else:
+        return data
+
+
+def kdf(secret, key_len):
+    from Cryptodome.Protocol.KDF import HKDF
+    from Cryptodome.Hash import SHA512
+    return HKDF(as_bytes(secret), key_len, None, SHA512)
+
+
 def aes_encrypt(plaintext, password):
-    # aes-128 cbc pkcs5 padding
+    # hkdf-sha512 / aes-128 eax pkcs7 padding
     from Cryptodome.Cipher import AES
-    from Cryptodome import Random
-    from Cryptodome.Hash import SHA256
-    padding = AES.block_size - len(plaintext) % AES.block_size
-    plaintext_padded = plaintext + chr(padding) * padding
-    iv = Random.new().read(AES.block_size)
-    key = SHA256.new(password).digest()[:16]
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    return iv + cipher.encrypt(plaintext_padded)
+    from Cryptodome.Random import get_random_bytes
+    from Cryptodome.Util.Padding import pad
+    key_size = 16
+    key = kdf(password, key_size)
+    plaintext_padded = pad(plaintext, AES.block_size, style='pkcs7')
+    cipher = AES.new(key, AES.MODE_EAX)
+    ciphertext, tag = cipher.encrypt_and_digest(plaintext_padded)
+    return cipher.nonce + tag + ciphertext
 
 
-def aes_decrypt(iv_ciphertext, password):
+def aes_decrypt(nonce_tag_ciphertext, password):
     from Cryptodome.Cipher import AES
-    from Cryptodome.Hash import SHA256
-    key = SHA256.new(password).digest()[:16]
-    iv, ciphertext = iv_ciphertext[:16], iv_ciphertext[16:]
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    plaintext_padded = cipher.decrypt(ciphertext)
-    c = plaintext_padded[-1]
-    if plaintext_padded.endswith(c * ord(c)):
-        return plaintext_padded[0:-ord(c)]
+    from Cryptodome.Util.Padding import unpad
+    key_size = 16
+    key = kdf(password, key_size)
+    nonce = nonce_tag_ciphertext[:16]
+    tag = nonce_tag_ciphertext[16:32]
+    ciphertext = nonce_tag_ciphertext[32:]
+    cipher = AES.new(key, AES.MODE_EAX, nonce)
+    try:
+        plaintext_padded = cipher.decrypt_and_verify(ciphertext, tag)
+        return unpad(plaintext_padded, AES.block_size, style='pkcs7')
+    except ValueError: # MAC tag invalid
+        return
 
 
 class TicketMinter:
