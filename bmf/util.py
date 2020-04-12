@@ -539,6 +539,20 @@ def delete_path(fullpath):
             os.unlink(fullpath)
 
 
+# from https://github.com/hynek/first
+def first(iterable, default=None, key=None):
+    if key is None:
+        for el in iterable:
+            if el:
+                return el
+    else:
+        for el in iterable:
+            if key(el):
+                return el
+
+    return default
+
+
 def create_thumbnail(input_filepath, output_filepath=None, width=None, height=None):
     from PIL import Image
     from io import BytesIO
