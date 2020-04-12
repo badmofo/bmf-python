@@ -354,7 +354,7 @@ def recursive_update(original, additional):
 def load_yaml(filename):
     import yaml
     with open(filename) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 def load_config(conf_dir):
     import munch
@@ -549,7 +549,6 @@ def first(iterable, default=None, key=None):
         for el in iterable:
             if key(el):
                 return el
-
     return default
 
 
