@@ -576,7 +576,8 @@ def create_thumbnail(input_filepath, output_filepath=None, width=None, height=No
     width = width or height or 180
     with open(input_filepath, 'rb') as f:
         img = Image.open(BytesIO(f.read()))
-        # original_size = img.size
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
         img.thumbnail((width, height), Image.ANTIALIAS)
         out = BytesIO()
         img.save(out, format='JPEG', quality=90)
