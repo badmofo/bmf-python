@@ -334,9 +334,9 @@ def find_subdir_in_parent(filepath, subdir, levels=2):
     from os.path import exists, join, dirname, abspath
     filepath = dirname(abspath(filepath))
     for i in range(levels):
-        conf_dir = join(dirname(filepath), 'conf')
-        if exists(conf_dir):
-            return conf_dir
+        subdir_path = join(filepath, subdir)
+        if exists(subdir_path):
+            return subdir_path
         filepath = dirname(filepath)
     raise Exception("could not find subdir '%s'" % subdir)
 
@@ -438,7 +438,7 @@ class TicketMinter:
     def __init__(self, secret, grace_time_sec=60*15, realm='DEFAULT'):
         import hashlib
         from Cryptodome.Cipher import AES
-        self.cipher = AES.new(hashlib.sha256(secret).digest())
+        self.cipher = AES.new(hashlib.sha256(as_bytes(secret)).digest())
         self.grace_time_sec = grace_time_sec
         self.realm = realm
 
